@@ -41,145 +41,232 @@ struct MainTabView: View {
 // MARK: - 今日 Tab
 struct TodayView: View {
     @State private var showVoiceSheet = false
-    @State private var showManualSheet = false
-    @State private var showAdviceAlert = false
+    @State private var showAddMeal = false
+    @State private var foodRecords: [TodayFoodRecord] = TodayFoodRecord.sample
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 16) {
+                VStack(spacing: 20) {
                     summaryCard
-                    quickActions
-                    latestMeals
+                    recordActions
+                    recordList
                 }
                 .padding()
             }
-            .navigationTitle("今日饮食")
-            .toolbar {
-                Button {
-                    showAdviceAlert = true
-                } label: {
-                    Image(systemName: "sparkles")
-                }
-            }
-            .alert("这是示意营养建议，未来可接入 AI", isPresented: $showAdviceAlert) {
-                Button("好的") {}
-            }
+            .navigationTitle("今日")
             .sheet(isPresented: $showVoiceSheet) {
-                SimplePlaceholderView(title: "语音记录", message: "这里展示语音录制和识别界面")
+                VoicePlaceholderView()
             }
-            .sheet(isPresented: $showManualSheet) {
-                SimplePlaceholderView(title: "手动添加", message: "这里填写食材、重量和用餐时间")
+            .navigationDestination(isPresented: $showAddMeal) {
+                AddFoodRecordView { newRecord in
+                    foodRecords.append(newRecord)
+                    showAddMeal = false
+                }
             }
         }
     }
 
     private var summaryCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("今日营养概要")
-                .font(.title3)
-                .bold()
-            HStack(alignment: .top, spacing: 12) {
-                nutrientBadge(title: "能量", value: "1560 kcal", status: "适中", color: .orange)
-                nutrientBadge(title: "蛋白质", value: "82 g", status: "稍低", color: .blue)
-                nutrientBadge(title: "蔬果", value: "3/5 份", status: "需补充", color: .green)
+        VStack(alignment: .leading, spacing: 14) {
+            Text("今日概览")
+                .font(.title3.bold())
+            VStack(spacing: 12) {
+                progressRow(title: "能量", subtitle: "已达推荐量的 70%", value: 0.7, tint: .orange)
+                progressRow(title: "蛋白质", subtitle: "82 g / 110 g", value: 0.74, tint: .blue)
+                progressRow(title: "蔬菜水果", subtitle: "3 / 5 份", value: 0.6, tint: .green)
             }
             Divider()
-            Text("建议：晚餐增加优质蛋白（如鸡胸肉、豆制品），多吃一份深色蔬菜。")
-                .foregroundColor(.secondary)
-                .font(.subheadline)
+            HStack(spacing: 10) {
+                Image(systemName: "leaf.fill")
+                    .foregroundColor(.green)
+                Text("今晚多加一份深色叶菜，顺便补点优质蛋白。")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
         }
         .padding()
-        .background(.thinMaterial)
-        .cornerRadius(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.ultraThickMaterial)
+        .cornerRadius(18)
+        .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 4)
     }
 
-    private var quickActions: some View {
-        VStack(spacing: 12) {
-            HStack {
-                Text("快速记录")
-                    .font(.headline)
-                Spacer()
-            }
-            HStack(spacing: 12) {
+    private var recordActions: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("记录入口")
+                .font(.headline)
+            VStack(spacing: 12) {
                 Button {
                     showVoiceSheet = true
                 } label: {
-                    actionButtonLabel(title: "语音记录", systemImage: "mic.fill", color: .pink)
+                    actionButton(title: "语音记录今天吃了什么", icon: "waveform.circle.fill", gradient: Gradient(colors: [.pink.opacity(0.85), .orange.opacity(0.8)]))
                 }
-                Button {
-                    showManualSheet = true
+                NavigationLink(isActive: $showAddMeal) {
+                    EmptyView()
                 } label: {
-                    actionButtonLabel(title: "手动添加", systemImage: "plus.circle.fill", color: .blue)
+                    actionButton(title: "手动添加饮食记录", icon: "plus.circle.fill", gradient: Gradient(colors: [.blue.opacity(0.85), .teal.opacity(0.8)]))
                 }
             }
         }
     }
 
-    private var latestMeals: some View {
+    private var recordList: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("今日吃了什么")
+            Text("今日已记录的食物")
                 .font(.headline)
-            ForEach(sampleMeals) { meal in
-                NavigationLink {
-                    MealDetailView(meal: meal)
-                } label: {
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack {
-                            Text(meal.time)
-                                .font(.subheadline)
+            if foodRecords.isEmpty {
+                Text("还没有记录，试试上面的按钮吧。")
+                    .foregroundColor(.secondary)
+            } else {
+                ForEach(foodRecords) { record in
+                    HStack(alignment: .top, spacing: 12) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(record.name)
+                                .font(.body.bold())
+                            Text("重量：\(Int(record.grams)) 克")
                                 .foregroundColor(.secondary)
-                            Spacer()
-                            Text(meal.scene)
                                 .font(.caption)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(Color.blue.opacity(0.1))
-                                .cornerRadius(8)
+                            if let price = record.price {
+                                Text(String(format: "价格：¥%.2f", price))
+                                    .foregroundColor(.secondary)
+                                    .font(.caption)
+                            }
                         }
-                        Text(meal.title)
-                            .font(.body)
-                        Text(meal.detail)
+                        Spacer()
+                        Text(record.timeLabel)
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.green.opacity(0.15))
+                            .cornerRadius(10)
                     }
                     .padding()
-                    .background(Color.green.opacity(0.08))
-                    .cornerRadius(12)
+                    .background(Color.white.opacity(0.85))
+                    .cornerRadius(14)
+                    .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 3)
                 }
             }
         }
     }
 
-    private func nutrientBadge(title: String, value: String, status: String, color: Color) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title)
-                .font(.subheadline)
-            Text(value)
-                .font(.headline)
-                .bold()
-            Text(status)
-                .font(.caption)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(color.opacity(0.15))
-                .cornerRadius(8)
+    private func progressRow(title: String, subtitle: String, value: Double, tint: Color) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text(title)
+                    .font(.subheadline.bold())
+                Spacer()
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            ProgressView(value: value)
+                .tint(tint)
+                .accentColor(tint)
+                .shadow(color: tint.opacity(0.25), radius: 4, x: 0, y: 2)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func actionButtonLabel(title: String, systemImage: String, color: Color) -> some View {
-        HStack {
-            Image(systemName: systemImage)
-            Text(title)
+    private func actionButton(title: String, icon: String, gradient: Gradient) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.title3)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.headline)
+                Text("语音记录 / 手动输入，快速补充今日饮食")
+                    .font(.caption)
+                    .foregroundColor(.white.opacity(0.8))
+            }
+            Spacer()
         }
-        .font(.headline)
         .padding()
         .frame(maxWidth: .infinity)
-        .background(color.opacity(0.15))
-        .foregroundColor(color)
-        .cornerRadius(12)
+        .foregroundColor(.white)
+        .background(
+            LinearGradient(gradient: gradient, startPoint: .topLeading, endPoint: .bottomTrailing)
+        )
+        .cornerRadius(14)
+        .shadow(color: Color.black.opacity(0.12), radius: 6, x: 0, y: 4)
     }
+}
+
+// MARK: - 语音占位
+struct VoicePlaceholderView: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 16) {
+                Image(systemName: "waveform")
+                    .font(.system(size: 60))
+                    .foregroundColor(.pink)
+                Text("语音记录占位")
+                    .font(.title2.bold())
+                Text("未来将在这里接入 iOS 语音识别与 AI 解析，自动识别你说的食物和重量。")
+                    .multilineTextAlignment(.center)
+                    .foregroundColor(.secondary)
+                Spacer()
+            }
+            .padding()
+            .navigationTitle("语音记录")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("关闭") { dismiss() }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - 手动添加视图
+struct AddFoodRecordView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var name: String = ""
+    @State private var grams: String = ""
+    @State private var price: String = ""
+    let onSave: (TodayFoodRecord) -> Void
+
+    var body: some View {
+        Form {
+            Section(header: Text("食物信息")) {
+                TextField("食物名称", text: $name)
+                TextField("重量（克）", text: $grams)
+                    .keyboardType(.numberPad)
+                TextField("价格（可选，元）", text: $price)
+                    .keyboardType(.decimalPad)
+            }
+
+            Section {
+                Button {
+                    guard let gramValue = Double(grams) else { return }
+                    let priceValue = Double(price)
+                    let record = TodayFoodRecord(name: name.isEmpty ? "未命名食物" : name, grams: gramValue, price: priceValue, timeLabel: "新增")
+                    onSave(record)
+                    dismiss()
+                } label: {
+                    Text("保存并添加到列表")
+                        .frame(maxWidth: .infinity, alignment: .center)
+                }
+                .disabled(grams.isEmpty)
+            }
+        }
+        .navigationTitle("添加饮食记录")
+    }
+}
+
+struct TodayFoodRecord: Identifiable {
+    let id = UUID()
+    let name: String
+    let grams: Double
+    let price: Double?
+    let timeLabel: String
+
+    static let sample: [TodayFoodRecord] = [
+        TodayFoodRecord(name: "燕麦牛奶", grams: 320, price: 6.5, timeLabel: "早餐"),
+        TodayFoodRecord(name: "鸡胸肉沙拉", grams: 350, price: 18.0, timeLabel: "午餐"),
+        TodayFoodRecord(name: "虾仁西兰花", grams: 420, price: 22.0, timeLabel: "晚餐")
+    ]
 }
 
 struct MealDetailView: View {
