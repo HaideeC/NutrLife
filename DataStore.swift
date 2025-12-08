@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 
 /// 轻量本地数据存储，使用 Codable + JSON 文件
 final class AppDataStore: ObservableObject {
