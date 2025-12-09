@@ -20,7 +20,7 @@ NutriLife 是一款面向中国独居年轻人和小家庭的「营养记账 + �
    git clone <repo-url>
    cd NutrLife
    ```
-2. 用 Xcode 打开本目录（单工程结构，无需额外配置）。
+2. 用 Xcode 打开本目录（如果已有模板工程，请删除默认生成的同名 App 入口/ContentView 以避免重复定义）。
 3. 选择 iOS 17+ 模拟器，直接运行或使用 Canvas 预览各 SwiftUI 视图。
 
 ## 代码结构

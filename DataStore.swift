@@ -17,7 +17,7 @@ final class AppDataStore: ObservableObject {
     private let queue = DispatchQueue(label: "com.nutrilife.datastore")
 
     init(fileManager: FileManager = .default) {
-        let documents = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first ?? URL(fileURLWithPath: "/")
+        let documents = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first ?? fileManager.temporaryDirectory
         mealsURL = documents.appendingPathComponent("meal_records.json")
         purchasesURL = documents.appendingPathComponent("purchase_records.json")
         settingsURL = documents.appendingPathComponent("user_settings.json")
