@@ -1,7 +1,9 @@
 import Foundation
 import Combine
+import SwiftUI
 
 /// 轻量本地数据存储，使用 Codable + JSON 文件
+@MainActor
 final class AppDataStore: ObservableObject {
     @Published private(set) var meals: [MealEntry] = []
     @Published private(set) var purchases: [PurchaseRecord] = []
